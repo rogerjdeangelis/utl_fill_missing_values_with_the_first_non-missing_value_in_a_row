@@ -212,4 +212,31 @@ Fill missing values with the first non-missing value in a row.
         if missing(t(_N_)) then t(_N_)=t(_N_+1);
         end;
     run;
+    
+    Paul,
+    
+       *
+     ___  ___  _ __ ___ _ __
+    / __|/ _ \| '__/ _ \ '_ \
+    \__ \ (_) | | |  __/ | | |
+    |___/\___/|_|  \___|_| |_|
+
+    ;
+    You are right, my primitive solution (which on the other hand has the advantage of being easier to understand and maintain, and more     general) is quite a lot slower than your suggested solutions.
+    
+    But the fastest way to find the left-most non-missing seems to be NMISS:
+    data want_x;
+      set have;
+      array t(*) t:;
+      _N_=nmiss(of t(*));
+      if 0<_N_<dim(t) then
+        call pokelong (repeat (put (t(_N_+1),rb8.), _N_), addrlong(t1));
+    run;
+
+    This is the fastest solution I have yet tried with your data. And it also works with special missing values, but of course not with     non-contiguous arrays or character arrays.
+
+    I tested, and there seemed to be a performance gain by precalculating the addrlong result, but not very much.
+
+    Regards,
+    Søren
 
