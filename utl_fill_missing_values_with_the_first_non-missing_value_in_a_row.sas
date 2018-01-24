@@ -242,4 +242,116 @@ addrlong result, but not very much.
 Regards,
 Søren
 
+*_____     _          _   _____
+|  ___| __(_) ___  __| | | ____|__ _  __ _
+| |_ | '__| |/ _ \/ _` | |  _| / _` |/ _` |
+|  _|| |  | |  __/ (_| | | |__| (_| | (_| |
+|_|  |_|  |_|\___|\__,_| |_____\__, |\__, |
+                               |___/ |___/
+;
+
+Fried Egg via listserv.uga.edu
+6:56 PM (14 hours ago)
+
+ to SAS-L
+Here is another method, for the hell of it…  It is the fastest generalized
+approach of those I’ve noticed be mentioned, so far.  I included NMISS,
+which is still the overall fastest approach to the direct problem.  The C
+code implemented in the PROTO Procedure essentially performs the identical
+behavior of the iterative do-loop in SAS data step.  It looks, sequentially,
+at each item in the array, checks if it is “missing” and moves on, as
+necessary until a non-missing value is encountered.  ZMISS is a built-in
+function provided by the PROTO Procedure which checks for the SAS “missing”
+value.
+
+My run;quitt seemed to terminate 'proc proto' cleanly
+
+
+proc proto packet=work.func.proto;
+
+   double c_firstNMISS(double * p);
+   externc c_firstNMISS;
+   double c_firstNMISS (double * p)
+   {
+    int i;
+    for (i = 0; ZMISS(p[i]); i++) {}
+    return p[i];
+   }
+   externcend;
+run;quit;
+
+proc fcmp inlib=work.func outlib=work.func.fcmp;
+   function firstNMISS(dp[*]);
+   return (c_firstNMISS(dp));
+   endsub;
+   array x[7] (. . . . . 1.01 1.02);
+   z=firstNMISS(x);
+   put z=;
+run;quit;
+
+options cmplib=(work.func);
+data _null_ ;
+  array t [999] _temporary_ (499*. 500*1);
+  do i=1 to 1e6;
+      z=firstNMISS(t);
+  end;
+run ;quit;
+
+https://imgur.com/AZ2Sf12 (includes code used to perform testing and
+produce above graphic)
+Comparisons significant at the 0.05 level are indicated by ***.
+method
+Comparison
+Difference
+Between
+Means
+95% Confidence Limits
+do_loop - nmiss
+0.161
+-14.667
+14.988
+do_loop - compare
+0.231
+-14.597
+15.058
+do_loop - c_loop
+1.114
+-13.713
+15.941
+nmiss - do_loop
+-0.161
+-14.988
+14.667
+nmiss - compare
+0.070
+-14.757
+14.897
+nmiss - c_loop
+0.953
+-13.874
+15.780
+compare - do_loop
+-0.231
+-15.058
+14.597
+compare - nmiss
+-0.070
+-14.897
+14.757
+compare - c_loop
+0.883
+-13.944
+15.710
+c_loop - do_loop
+-1.114
+-15.941
+13.713
+c_loop - nmiss
+-0.953
+-15.780
+13.874
+c_loop - compare
+-0.883
+-15.710
+13.944
 
