@@ -353,3 +353,277 @@ Fill missing values with the first non-missing value in a row.
     -15.710
     13.944
 
+    *____             _
+    |  _ \ __ _ _   _| |
+    | |_) / _` | | | | |
+    |  __/ (_| | |_| | |
+    |_|   \__,_|\__,_|_|
+
+    ;
+
+    Paul Dorfman via listserv.uga.edu
+    1:30 AM (7 hours ago)
+
+     to SAS-L
+    Fried Egg,
+
+    It's just great: Thanks!
+
+    While at that, I've been anxious about not being able to find a standard SAS function that would get the leftmost non-null value from array ARR straight away - assuming, of course, for the generality sake, that after the first non-null there may be oth
+    like SCAN, FIND, and others do) to locate the index with the value *other* than the first argument. Alas! But finally it's dawned on my feeble brain that the compound expression:
+
+    WhichN (coalesce (of arr[*]), of arr[*])
+
+    will do just that. Naturally, I couldn't abstain from testing how it would stake up versus the rest of the techniques and hence concocted the code below. It includes the simple head-on scan, APP with COMPARE, your FIRSTNMISS, and WhichN+Coalesce expres
+
+    proc proto packet=work.func.proto ;
+      double c_firstNMISS(double * p) ;
+      externc c_firstNMISS ;
+      double c_firstNMISS (double * p) {
+      int i ;
+      for (i = 0; ZMISS(p[i]); i++) {}
+      return p[i] ;
+      }
+      externcend ;
+    run ;
+    quit ;
+
+    proc fcmp inlib=work.func outlib=work.func.fcmp ;
+      function firstNMISS(dp[*]) ;
+      return (c_firstNMISS(dp)) ;
+      endsub ;
+    run ;
+
+    options cmplib=(work.func);
+
+    data _null_ ;
+      retain iter 1e5 ;
+
+      array arr [999] _temporary_ ;
+      length comp $ %eval (999*8) ;
+      comp = repeat (put (., rb8.), dim (arr) - 1) ;
+      adr1 = addrlong (arr[1]) ;
+
+      do i = dim(arr) to 1 by -99 ;
+        arr[i] = i ;
+      * scan ;
+        t = time() ;
+        do j = 1 to iter ;
+          do Z = 1 by 1 until (N (arr[Z])) ;
+          end ;
+        end ;
+        t_scan ++ (time() - t) ;
+      * APPs ;
+        t = time() ;
+        do j = 1 to iter ;
+          Z = ceil (compare (comp, peekclong (adr1, 7992)) / 8) ;
+        end ;
+        t_apps ++ (time() - t) ;
+      * Fried Egg ;
+        t = time() ;
+        do j = 1 to iter ;
+          Z = firstNmiss(arr) ;
+        end ;
+        t_fegg ++ (time() - t) ;
+      * Coalesce + WhichN ;
+        t = time() ;
+        do j = 1 to iter ;
+          Z = whichN (coalesce (of arr[*]), of arr[*]) ;
+        end ;
+        t_whch ++ (time() - t) ;
+      end ;
+      put (t_scan t_apps t_fegg t_whch) (=/) ;
+    run ;
+
+    The results for 1E5 iterations on my venerable laptop (W520 ThinkPad, X64_&PRO, i7/2.4Ghz/16G RAM/500G SSD) are below. Note the difference between V9.3 (TS Level 1M2) and V9.4 (TS Level 1M4).
+
+    V9.3:
+    --------------
+    t_scan=8.684
+    t_apps=3.245
+    t_fegg=1.261
+    t_whch=0.894
+
+    V9.4:
+    --------------
+    t_scan=10.222
+    t_apps=3.264
+    t_fegg=1.264
+    t_whch=0.923
+
+    Apart from the curiosity of 9.3 being faster than 9.4, I bet that if the WHICH* function had the K-modifier, it'd execute about twice faster.
+
+    Kind regards
+    --------------
+    Paul Dorfman
+    JAX, FL
+    --------------
+
+
+
+    *_____     _          _   _____
+    |  ___| __(_) ___  __| | | ____|__ _  __ _
+    | |_ | '__| |/ _ \/ _` | |  _| / _` |/ _` |
+    |  _|| |  | |  __/ (_| | | |__| (_| | (_| |
+    |_|  |_|  |_|\___|\__,_| |_____\__, |\__, |
+                                   |___/ |___/
+    ;
+
+    Not hard to test it and see…
+    https://i.imgur.com/F4GnaUg.png
+    It would be good to note that while a portion of the difference between c_double and c_int is, as ra
+    proc proto packet=work.func.proto;
+    double c_iloop(double * p);
+    externc c_iloop;
+    double c_iloop(double * p) {
+    int i;
+    for (i = 0; ZMISS(p[i]); i++) {}
+    return p[i];
+    }
+    externcend;
+    double c_dloop(double * p);
+    externc c_dloop;
+    double c_dloop(double * p) {
+    double i;
+    for (i = 0; ZMISS(p[(int)i]); i++) {}
+    return p[(int)i];
+    }
+    externcend;
+    double c_diloop(double * p);
+    externc c_diloop;
+    double c_diloop(double * p) {
+    double i;
+    int j=0;
+    for (i = 0; ZMISS(p[j]); i++) {j++;}
+    return p[j];
+    }
+    externcend;
+    run;
+    method
+    Comparison
+    Difference
+    Between
+    Means
+    Simultaneous 95% Confidence
+    Limits
+    ds2_double - ds2_int
+    2.6136
+    2.1542
+    3.0730
+    ds2_double - traditional
+    9.8340
+    9.3539
+    10.3141
+    ds2_double - c_double
+    21.9887
+    21.5231
+    22.4544
+    ds2_double - c_doub/int
+    26.6520
+    26.1927
+    27.1114
+    ds2_double - c_int
+    27.2940
+    26.8457
+    27.7423
+    ds2_int - ds2_double
+    -2.6136
+    -3.0730
+    -2.1542
+    ds2_int - traditional
+    7.2204
+    6.7299
+    7.7109
+    ds2_int - c_double
+    19.3752
+    18.8988
+    19.8515
+    ds2_int - c_doub/int
+    24.0384
+    23.5683
+    24.5086
+    ds2_int - c_int
+    24.6804
+    24.2210
+    25.1397
+    traditional - ds2_double
+    -9.8340
+    -10.3141
+    -9.3539
+    traditional - ds2_int
+    -7.2204
+    -7.7109
+    -6.7299
+    traditional - c_double
+    12.1548
+    11.6584
+    12.6511
+    traditional - c_doub/int
+    16.8180
+    16.3276
+    17.3085
+    traditional - c_int
+    17.4600
+    16.9798
+    17.9401
+    c_double - ds2_double
+    -21.9887
+    -22.4544
+    -21.5231
+    c_double - ds2_int
+    -19.3752
+    -19.8515
+    -18.8988
+    c_double - traditional
+    -12.1548
+    -12.6511
+    -11.6584
+    c_double - c_doub/int
+    4.6633
+    4.1870
+    5.1396
+    c_double - c_int
+    5.3052
+    4.8395
+    5.7709
+    c_doub/int - ds2_double
+    -26.6520
+    -27.1114
+    -26.1927
+    c_doub/int - ds2_int
+    -24.0384
+    -24.5086
+    -23.5683
+    c_doub/int - traditional
+    -16.8180
+    -17.3085
+    -16.3276
+    c_doub/int - c_double
+    -4.6633
+    -5.1396
+    -4.1870
+    c_doub/int - c_int
+    0.6419
+    0.1825
+    1.1013
+    c_int - ds2_double
+    -27.2940
+    -27.7423
+    -26.8457
+    c_int - ds2_int
+    -24.6804
+    -25.1397
+    -24.2210
+    c_int - traditional
+    -17.4600
+    -17.9401
+    -16.9798
+    c_int - c_double
+    -5.3052
+    -5.7709
+    -4.8395
+    c_int - c_doub/int
+    -0.6419
+    -1.1013
+    -0.1825
+
