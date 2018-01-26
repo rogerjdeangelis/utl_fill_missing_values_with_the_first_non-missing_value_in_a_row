@@ -11,6 +11,25 @@ Fill missing values with the first non-missing value in a row.
       accidental function;
     novinosrin profile
     https://communities.sas.com/t5/user/viewprofilepage/user-id/138205
+    
+    The best algorithm (Soren)
+    
+    data have;
+    input t1-t5;
+    cards4;
+    . 1 2 3 4
+    . . 2 3 4
+    0 1 2 3 4
+    ;;;;
+    run;quit;
+
+    data want_x;
+    set have;
+    array t(*) t:;
+     _N_=nmiss(of t(*));
+    if 0<_N_<dim(t) then
+    call pokelong (repeat (put (t(_N_+1),rb8.), _N_), addrlong(t1));
+    run;quit;
 
     INPUT
 
