@@ -650,3 +650,40 @@ which is simple and easy to understand and maintain.
 
 Regards,
 Søren
+
+*                  _
+ _ __   __ _ _   _| |
+| '_ \ / _` | | | | |
+| |_) | (_| | |_| | |
+| .__/ \__,_|\__,_|_|
+|_|
+;
+
+
+Søren,
+
+1. Fried Egg's method is the FIRSTNMISS function he's defined via proc PROTO.
+Coalesce+WhichN method is merely a combo of two standard SAS list functions
+I had to pair for the lack of the "K" modifier in the WhichN function. I suspect
+each of them separately perform on par with NMISS, N, and the rest of their kin,
+likely because they're based on the same underlying software algorit
+hm - in principle, not much different from Fried Egg's FIRSTNMISS, but still 2-3
+time faster (judging from my experiment) for the lack of
+some user-defined function's overhead.
+
+2. You're quite right about the way the problem was originally stated -
+or, more precisely, how the sample data looked visually. Obviously, within
+its confines the NMISS function is the fastest since it is (a) fast and (b)
+the only one needed. I got interested in a more general case following the Nat's note.
+
+3. I agree - in real life, a few seconds here and there matter less than code
+simplicity and clarity. Yet there're situations where those seconds may
+accumulate to the point where more optimization, albeit at the expense of
+more complex code, is called for. And of course having fun coding esoteric
+solutions is part and parcel of SAS-L, not to mention that sometimes they plant seeds
+ of what may become mainstream in the future (hash is an example).
+
+Best regards
+Paul
+
+
