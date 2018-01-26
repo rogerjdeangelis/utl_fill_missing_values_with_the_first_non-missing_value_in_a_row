@@ -627,3 +627,24 @@ Fill missing values with the first non-missing value in a row.
     -1.1013
     -0.1825
 
+     ___  ___  _ __ ___ _ __
+    / __|/ _ \| '__/ _ \ '_ \
+    \__ \ (_) | | |  __/ | | |
+    |___/\___/|_|  \___|_| |_|
+
+
+    Paul,
+    Agreed, Fried Egg's WHICHN method is elegant and surprisingly fast;
+    certainly belongs in the SAS cookbook. But you write that the NMISS
+    method lacks generality because it fails if there are other missing values.
+    Which was not the case in the original problem. And if it was the case,
+    you may want to "left-fill" those also, which is exactly what my "dummy" method does.
+
+    While it may be very fun (and we all learned a lot, I think) to
+    optimize such SAS code, I think it is a waste of time in most real-life situations.
+    Much more important to have failsafe and generally usable code,
+    which is simple and easy to understand and maintain.
+
+    Regards,
+    Søren
+
